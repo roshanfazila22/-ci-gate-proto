@@ -1,0 +1,43 @@
+# PROTOTYPE ONLY - throwaway workflow to test the eidovis-api ready gate. Never merged to main/develop.
+name: Proto Gate
+on:
+  pull_request:
+    branches: ['ci-proto/**']
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+concurrency:
+  group: proto-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  test:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decide readiness (live)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          READY_LABEL: ci:ready-to-merge
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "event=$EVENT action=$ACTION sha=$GITHUB_SHA head=$HEAD_SHA"
+          out=$(scripts/ready_gate.sh) || { echo "$out"; echo "::error::Could not read PR state"; exit 1; }
+          echo "$out"
+          echo "$out" | grep -q '^ready=true' || { echo "::error::Full validation runs once the PR is approved or carries ci:ready-to-merge"; exit 1; }
+      - name: Stub full suite
+        run: |
+          echo "pretend pytest running on $GITHUB_SHA"
+          sleep 30
+          echo "done"
