@@ -33,7 +33,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           echo "event=$EVENT action=$ACTION sha=$GITHUB_SHA head=$HEAD_SHA"
-          out=$(scripts/ready_gate.sh) || { echo "$out"; echo "::error::Could not read PR state"; exit 1; }
+          out=$(bash scripts/ready_gate.sh) || { echo "$out"; echo "::error::Could not read PR state"; exit 1; }
           echo "$out"
           echo "$out" | grep -q '^ready=true' || { echo "::error::Full validation runs once the PR is approved or carries ci:ready-to-merge"; exit 1; }
       - name: Stub full suite
